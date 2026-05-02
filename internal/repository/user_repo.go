@@ -9,6 +9,8 @@ type UserRepository interface {
 	CreateUser(user *model.User) error
 	FindUserByEmail(email string) (*model.User, error)
 	GetByID(id string) (*model.User, error)
+	UpdateUser(user *model.User) error
+	DeleteUser(id string) error
 }
 
 type userRepo struct {
@@ -34,4 +36,15 @@ func (u *userRepo) GetByID(id string) (*model.User, error) {
 	err := database.DB.Where("id = ?", id).Find(&user).Error
 
 	return &user, err
+}
+
+func (u *userRepo) UpdateUser(user *model.User) error {
+	return database.DB.Where("id = ?", user.ID).Updates(user).Error
+}
+
+func (u *userRepo) DeleteUser(id string) error {
+	var user model.User
+	err := database.DB.Where("id = ?", id).Delete(&user).Error
+
+	return err
 }

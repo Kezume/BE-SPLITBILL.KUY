@@ -11,3 +11,9 @@ type LoginUser struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
 }
+
+type UpdateProfile struct {
+	Username string `json:"username" validate:"min=5"`
+	Phone    string `json:"phone" validate:"max=13"`
+	Email    string `json:"email" validate:"email"`
+}

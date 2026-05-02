@@ -29,7 +29,9 @@ func SetupRoutes(r *gin.Engine) {
 	protectedRoutes.Use(middleware.AuthMidleware())
 	protectedRoutes.POST("/auth/logout", authHandler.Logout)
 
-	// === User ===
-	userRoutes := api.Group("/users")
+	// === User (Protected) ===
+	userRoutes := protectedRoutes.Group("/users")
 	userRoutes.GET("/profile", userHandler.GetProfile)
+	userRoutes.PUT("/profile", userHandler.UpdateProfile)
+	userRoutes.DELETE("/profile", userHandler.DeleteProfile)
 }
