@@ -23,4 +23,5 @@ func SetupRoutes(r *gin.Engine) {
 	// === Protected Routes ===
 	protectedRoutes := api.Group("")
 	protectedRoutes.Use(middleware.AuthMidleware())
+	protectedRoutes.POST("/auth/logout", authHandler.Logout)
 }
