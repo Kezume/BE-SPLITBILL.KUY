@@ -53,3 +53,9 @@ func (a *AuthHandler) Login(c *gin.Context) {
 
 	response.Success(c, response.ToUserResponse(user, token))
 }
+
+func (a *AuthHandler) Logout(c *gin.Context) {
+	response.Success(c, gin.H{
+		"message": "Logout Successfully",
+	})
+}
