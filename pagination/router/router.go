@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/Kezume/BE-SPLITBILL.KUY/internal/handler"
+	"github.com/Kezume/BE-SPLITBILL.KUY/internal/middleware"
 	"github.com/Kezume/BE-SPLITBILL.KUY/internal/repository"
 	"github.com/Kezume/BE-SPLITBILL.KUY/internal/service"
 	"github.com/gin-gonic/gin"
@@ -18,4 +19,8 @@ func SetupRoutes(r *gin.Engine) {
 	authRoutes := api.Group("/auth")
 	authRoutes.POST("/register", authHandler.Register)
 	authRoutes.POST("/login", authHandler.Login)
+
+	// === Protected Routes ===
+	protectedRoutes := api.Group("")
+	protectedRoutes.Use(middleware.AuthMidleware())
 }
