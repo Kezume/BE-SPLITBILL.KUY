@@ -9,8 +9,8 @@ var SECRET_KEY = []byte(config.AppConfig.JWTSecret)
 
 func GenerateToken(id, email string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"id":    id,
-		"email": email,
+		"user_id": id,
+		"email":   email,
 	})
 	return token.SignedString(SECRET_KEY)
 }

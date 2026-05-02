@@ -11,11 +11,15 @@ import (
 func SetupRoutes(r *gin.Engine) {
 	api := r.Group("/api/v1")
 
-	// === User / Auth ===
+	// === dependency injection ===
 	userRepo := repository.NewUserRepository()
-	userService := service.NewUserService(userRepo)
-	authHandler := handler.NewAuthHandler(userService)
+	authService := service.NewAuthService(userRepo)
+	authHandler := handler.NewAuthHandler(authService)
 
+	userService := service.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userService)
+
+	// === Auth ===
 	authRoutes := api.Group("/auth")
 	authRoutes.POST("/register", authHandler.Register)
 	authRoutes.POST("/login", authHandler.Login)
@@ -24,4 +28,8 @@ func SetupRoutes(r *gin.Engine) {
 	protectedRoutes := api.Group("")
 	protectedRoutes.Use(middleware.AuthMidleware())
 	protectedRoutes.POST("/auth/logout", authHandler.Logout)
+
+	// === User ===
+	userRoutes := api.Group("/users")
+	userRoutes.GET("/profile", userHandler.GetProfile)
 }

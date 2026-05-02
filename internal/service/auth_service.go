@@ -14,17 +14,17 @@ type AuthService interface {
 	Login(req dto.LoginUser) (*model.User, string, error)
 }
 
-type userService struct {
+type authService struct {
 	repo repository.UserRepository
 }
 
-func NewUserService(repo repository.UserRepository) *userService {
-	return &userService{
+func NewAuthService(repo repository.UserRepository) *authService {
+	return &authService{
 		repo: repo,
 	}
 }
 
-func (u *userService) Register(req dto.RegisterUser) (*model.User, error) {
+func (u *authService) Register(req dto.RegisterUser) (*model.User, error) {
 	hashPassword, _ := utils.HashPassword(req.Password)
 
 	user := model.User{
@@ -39,7 +39,7 @@ func (u *userService) Register(req dto.RegisterUser) (*model.User, error) {
 	return &user, err
 }
 
-func (u *userService) Login(req dto.LoginUser) (*model.User, string, error) {
+func (u *authService) Login(req dto.LoginUser) (*model.User, string, error) {
 	user, err := u.repo.FindUserByEmail(req.Email)
 	if err != nil {
 		return nil, "", errors.New("User Not Found")

@@ -27,14 +27,14 @@ func AuthMidleware() gin.HandlerFunc {
 				return nil, fmt.Errorf("Invalid Signing Method")
 			}
 
-			return config.AppConfig.JWTSecret, nil
+			return []byte(config.AppConfig.JWTSecret), nil
 		})
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 
 		if ok && token.Valid {
-			userID := claims["id"].(string)
-			c.Set("id", userID)
+			userID := claims["user_id"].(string)
+			c.Set("user_id", userID)
 		}
 
 		if err != nil || !token.Valid {
