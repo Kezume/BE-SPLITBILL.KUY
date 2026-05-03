@@ -19,6 +19,10 @@ func SetupRoutes(r *gin.Engine) {
 	userService := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userService)
 
+	dashboardRepo := repository.NewDashboardRepository()
+	dashboardService := service.NewDashboardService(dashboardRepo)
+	dashboardHandler := handler.NewDashboardHandler(dashboardService)
+
 	// === Auth ===
 	authRoutes := api.Group("/auth")
 	authRoutes.POST("/register", authHandler.Register)
@@ -34,4 +38,8 @@ func SetupRoutes(r *gin.Engine) {
 	userRoutes.GET("/profile", userHandler.GetProfile)
 	userRoutes.PUT("/profile", userHandler.UpdateProfile)
 	userRoutes.DELETE("/profile", userHandler.DeleteProfile)
+
+	// === Dashboard (Protected) ===
+	dashboardRoutes := protectedRoutes.Group("/dashboard")
+	dashboardRoutes.GET("/", dashboardHandler.GetDashboard)
 }
