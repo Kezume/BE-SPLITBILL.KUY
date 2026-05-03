@@ -2,18 +2,28 @@ package dto
 
 import "time"
 
-type UserStats struct {
-	TotalSplit  int `json:"total_split"`
-	ActiveGroup int `json:"active_group"`
-	TotalFriend int `json:"total_friend"`
-	TotalDrama  int `json:"total_drama"`
-}
-
 type AuthResponse struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Token    string `json:"token"`
+}
+
+type CreateGroupResponse struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Icon        string    `json:"icon"`
+	InviteCode  string    `json:"invite_code"`
+	TotalAmount float64   `json:"total_amount"`
+	MemberCount int       `json:"member_count"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type UserStats struct {
+	TotalSplit  int `json:"total_split"`
+	ActiveGroup int `json:"active_group"`
+	TotalFriend int `json:"total_friend"`
+	TotalDrama  int `json:"total_drama"`
 }
 
 type GetProfileResponse struct {
@@ -27,6 +37,7 @@ type GetProfileResponse struct {
 	Stats       UserStats `json:"stats"`
 }
 
+// === digunakan untuk dashboard ===
 type SummaryDashboard struct {
 	TotalOwe  float64 `json:"total_owe"`
 	TotalOwed float64 `json:"total_owed"`

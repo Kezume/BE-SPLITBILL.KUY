@@ -23,6 +23,10 @@ func SetupRoutes(r *gin.Engine) {
 	dashboardService := service.NewDashboardService(dashboardRepo)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 
+	groupRepo := repository.NewGroupRepository()
+	groupService := service.NewGroupService(groupRepo)
+	groupHandler := handler.NewGroupHandler(groupService)
+
 	// === Auth ===
 	authRoutes := api.Group("/auth")
 	authRoutes.POST("/register", authHandler.Register)
@@ -42,4 +46,8 @@ func SetupRoutes(r *gin.Engine) {
 	// === Dashboard (Protected) ===
 	dashboardRoutes := protectedRoutes.Group("/dashboard")
 	dashboardRoutes.GET("/", dashboardHandler.GetDashboard)
+
+	// === Group (Protected) ===
+	groupRoutes := protectedRoutes.Group("/groups")
+	groupRoutes.POST("/", groupHandler.CreateGroup)
 }

@@ -17,3 +17,8 @@ type UpdateProfile struct {
 	Phone    string `json:"phone" validate:"max=13"`
 	Email    string `json:"email" validate:"email"`
 }
+
+type CreateGroup struct {
+	Name string `json:"name" validate:"required"`
+	Icon string `json:"icon"`
+}

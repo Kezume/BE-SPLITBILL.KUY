@@ -26,7 +26,7 @@ func (a *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	user, err := a.service.Register(req)
+	user, err := a.service.Register(c.Request.Context(), req)
 	if err != nil {
 		response.Error(c, 500, "Failed to Register, Try again")
 		return
@@ -45,7 +45,7 @@ func (a *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, token, err := a.service.Login(req)
+	user, token, err := a.service.Login(c.Request.Context(), req)
 	if err != nil {
 		response.Error(c, 500, "Failed to Login, Try Again")
 		return

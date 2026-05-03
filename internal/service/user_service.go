@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 
 	"github.com/Kezume/BE-SPLITBILL.KUY/internal/model"
@@ -8,23 +9,23 @@ import (
 )
 
 type UserService interface {
-	GetProfile(id string) (*model.User, error)
-	UpdateProfile(user *model.User) error
-	DeleteProfile(id string) error
+	GetProfile(ctx context.Context, id string) (*model.User, error)
+	UpdateProfile(ctx context.Context, user *model.User) error
+	DeleteProfile(ctx context.Context, id string) error
 }
 
 type userService struct {
 	repo repository.UserRepository
 }
 
-func NewUserService(repo repository.UserRepository) *userService {
+func NewUserService(repo repository.UserRepository) UserService {
 	return &userService{
 		repo: repo,
 	}
 }
 
-func (u *userService) GetProfile(id string) (*model.User, error) {
-	user, err := u.repo.GetByID(id)
+func (u *userService) GetProfile(ctx context.Context, id string) (*model.User, error) {
+	user, err := u.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, errors.New("User Not Found")
 	}
@@ -32,9 +33,9 @@ func (u *userService) GetProfile(id string) (*model.User, error) {
 	return user, nil
 }
 
-func (u *userService) UpdateProfile(inputUser *model.User) error {
+func (u *userService) UpdateProfile(ctx context.Context, inputUser *model.User) error {
 	// Ambil data lama dari DB (gunakan nama variabel berbeda)
-	existingUser, err := u.repo.GetByID(inputUser.ID.String())
+	existingUser, err := u.repo.GetByID(ctx, inputUser.ID.String())
 	if err != nil {
 		return errors.New("User not found!")
 	}
@@ -51,7 +52,7 @@ func (u *userService) UpdateProfile(inputUser *model.User) error {
 	}
 
 	// Simpan perubahan ke DB
-	err = u.repo.UpdateUser(existingUser)
+	err = u.repo.UpdateUser(ctx, existingUser)
 	if err != nil {
 		return errors.New("Failed to update user!")
 	}
@@ -62,8 +63,8 @@ func (u *userService) UpdateProfile(inputUser *model.User) error {
 	return nil
 }
 
-func (u *userService) DeleteProfile(id string) error {
-	err := u.repo.DeleteUser(id)
+func (u *userService) DeleteProfile(ctx context.Context, id string) error {
+	err := u.repo.DeleteUser(ctx, id)
 	if err != nil {
 		return errors.New("Failed to delete user!")
 	}

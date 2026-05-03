@@ -22,7 +22,7 @@ func NewUserHandler(service service.UserService) UserHandler {
 func (u *UserHandler) GetProfile(c *gin.Context) {
 	userID := c.GetString("user_id")
 
-	user, err := u.service.GetProfile(userID)
+	user, err := u.service.GetProfile(c.Request.Context(), userID)
 	if err != nil {
 		response.Error(c, 500, "Failed to Get Profile")
 		return
@@ -53,7 +53,7 @@ func (u *UserHandler) UpdateProfile(c *gin.Context) {
 		Email:    payload.Email,
 	}
 
-	err := u.service.UpdateProfile(user)
+	err := u.service.UpdateProfile(c.Request.Context(), user)
 	if err != nil {
 		response.Error(c, 500, "Failed to Update user")
 		return
@@ -70,7 +70,7 @@ func (u *UserHandler) DeleteProfile(c *gin.Context) {
 		return
 	}
 
-	err := u.service.DeleteProfile(userID)
+	err := u.service.DeleteProfile(c.Request.Context(), userID)
 	if err != nil {
 		response.Error(c, 500, "Failed to Delete Profile")
 		return

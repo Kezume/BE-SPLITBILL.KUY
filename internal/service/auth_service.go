@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 
 	"github.com/Kezume/BE-SPLITBILL.KUY/internal/dto"
@@ -10,21 +11,21 @@ import (
 )
 
 type AuthService interface {
-	Register(req dto.RegisterUser) (*model.User, error)
-	Login(req dto.LoginUser) (*model.User, string, error)
+	Register(ctx context.Context, req dto.RegisterUser) (*model.User, error)
+	Login(ctx context.Context, req dto.LoginUser) (*model.User, string, error)
 }
 
 type authService struct {
 	repo repository.UserRepository
 }
 
-func NewAuthService(repo repository.UserRepository) *authService {
+func NewAuthService(repo repository.UserRepository) AuthService {
 	return &authService{
 		repo: repo,
 	}
 }
 
-func (u *authService) Register(req dto.RegisterUser) (*model.User, error) {
+func (u *authService) Register(ctx context.Context, req dto.RegisterUser) (*model.User, error) {
 	hashPassword, _ := utils.HashPassword(req.Password)
 
 	user := model.User{
@@ -34,13 +35,16 @@ func (u *authService) Register(req dto.RegisterUser) (*model.User, error) {
 		Password: hashPassword,
 	}
 
-	err := u.repo.CreateUser(&user)
+	err := u.repo.CreateUser(ctx, &user)
+	if err != nil {
+		return nil, err
+	}
 
-	return &user, err
+	return &user, nil
 }
 
-func (u *authService) Login(req dto.LoginUser) (*model.User, string, error) {
-	user, err := u.repo.FindUserByEmail(req.Email)
+func (u *authService) Login(ctx context.Context, req dto.LoginUser) (*model.User, string, error) {
+	user, err := u.repo.FindUserByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, "", errors.New("User Not Found")
 	}
