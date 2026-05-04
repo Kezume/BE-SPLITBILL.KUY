@@ -37,6 +37,22 @@ type GetProfileResponse struct {
 	Stats       UserStats `json:"stats"`
 }
 
+type ListGroupResponse struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Icon        string    `json:"icon"`
+	InviteCode  string    `json:"invite_code"`
+	TotalAmount float64   `json:"total_amount"`
+	MemberCount int       `json:"member_count"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type Meta struct {
+	Page  int `json:"page"`
+	Limit int `json:"limit"`
+	Total int `json:"total"`
+}
+
 // === digunakan untuk dashboard ===
 type SummaryDashboard struct {
 	TotalOwe  float64 `json:"total_owe"`

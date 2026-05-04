@@ -46,3 +46,34 @@ func (g *GroupHandler) CreateGroup(c *gin.Context) {
 
 	response.Success(c, response.ToGroupResponse(group))
 }
+
+func (g *GroupHandler) GetListGroup(c *gin.Context) {
+	userID := c.GetString("user_id")
+	if userID == "" {
+		response.Error(c, 401, "Unauthorized: Missing Token")
+		return
+	}
+
+	pagination := dto.PaginationRequest{
+		Page:  1,
+		Limit: 10,
+	}
+
+	c.ShouldBindQuery(&pagination)
+
+	if pagination.Limit < 1 {
+		pagination.Limit = 10
+	}
+
+	if pagination.Page < 1 {
+		pagination.Page = 1
+	}
+
+	groups, err := g.service.GetListGroup(c.Request.Context(), userID, &pagination)
+	if err != nil {
+		response.Error(c, 500, "Failed to Fetch List Group")
+		return
+	}
+
+	response.Success(c, groups)
+}
