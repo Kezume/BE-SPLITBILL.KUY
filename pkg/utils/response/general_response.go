@@ -18,3 +18,11 @@ func Error(c *gin.Context, code int, message string) {
 		},
 	})
 }
+
+func SuccessWithMeta(c *gin.Context, data any, meta any) {
+	c.JSON(200, gin.H{
+		"success": true,
+		"data":    data,
+		"meta":    meta,
+	})
+}

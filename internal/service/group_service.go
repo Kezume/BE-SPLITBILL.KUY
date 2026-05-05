@@ -14,7 +14,8 @@ import (
 
 type GroupService interface {
 	CreateGroup(ctx context.Context, group *model.Groups, userID string) error
-	GetListGroup(ctx context.Context, userID string, pagination *dto.PaginationRequest) ([]dto.ListGroupResponse, error)
+	GetListGroup(ctx context.Context, userID string, pagination *dto.PaginationRequest) ([]dto.ListGroupResponse, *dto.Meta, error)
+	GetGroupDetail(ctx context.Context, groupID string, userID string) (*dto.GroupDetailResponse, error)
 }
 
 type groupService struct {
@@ -38,10 +39,10 @@ func (g *groupService) CreateGroup(ctx context.Context, group *model.Groups, use
 	return nil
 }
 
-func (g *groupService) GetListGroup(ctx context.Context, userID string, pagination *dto.PaginationRequest) ([]dto.ListGroupResponse, error) {
-	groups, err := g.repo.FetchAllGroup(ctx, userID, pagination)
+func (g *groupService) GetListGroup(ctx context.Context, userID string, pagination *dto.PaginationRequest) ([]dto.ListGroupResponse, *dto.Meta, error) {
+	groups, total, err := g.repo.FetchAllGroup(ctx, userID, pagination)
 	if err != nil {
-		return nil, errors.New("Failed to fetch list group!")
+		return nil, nil, errors.New("Failed to fetch list group!")
 	}
 
 	var data []dto.ListGroupResponse
@@ -67,5 +68,56 @@ func (g *groupService) GetListGroup(ctx context.Context, userID string, paginati
 		})
 	}
 
-	return data, nil
+	meta := &dto.Meta{
+		Page:  pagination.Page,
+		Limit: pagination.Limit,
+		Total: int(total),
+	}
+
+	return data, meta, nil
+}
+
+func (g *groupService) GetGroupDetail(ctx context.Context, groupID string, userID string) (*dto.GroupDetailResponse, error) {
+	group, err := g.repo.GetGroupDetail(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ambil expenses
+	expenses, err := g.repo.GetExpensesByGroupID(ctx, groupID)
+	if err != nil || expenses == nil {
+		expenses = []dto.ExpenseResponse{}
+	}
+
+	var totalSpent float64
+	for _, exp := range expenses {
+		totalSpent += exp.Amount
+	}
+
+	// Ambil members dari repo
+	members, err := g.repo.GetGroupMembers(ctx, groupID)
+	if err != nil || members == nil {
+		members = []dto.UserPreview{}
+	}
+
+	var data dto.GroupDetailResponse
+	data.ID = group.ID.String()
+	data.Name = group.Name
+	data.Icon = group.Icon
+	data.InviteCode = group.InviteCode
+	data.TotalAmount = totalSpent
+	data.MemberCount = len(members)
+	data.CreatedAt = group.CreatedAt
+
+	data.Stats = dto.GroupDetailStats{
+		TotalSpent:   totalSpent,
+		YourShare:    0,
+		UnpaidAmount: 0,
+		IsSettled:    true,
+	}
+
+	data.Members = members
+	data.Expenses = expenses
+
+	return &data, nil
 }

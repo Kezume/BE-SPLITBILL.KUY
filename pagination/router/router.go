@@ -51,4 +51,5 @@ func SetupRoutes(r *gin.Engine) {
 	groupRoutes := protectedRoutes.Group("/groups")
 	groupRoutes.POST("/", groupHandler.CreateGroup)
 	groupRoutes.GET("/list", groupHandler.GetListGroup)
+	groupRoutes.GET("/:id", groupHandler.GetGroupDetail)
 }

@@ -69,11 +69,33 @@ func (g *GroupHandler) GetListGroup(c *gin.Context) {
 		pagination.Page = 1
 	}
 
-	groups, err := g.service.GetListGroup(c.Request.Context(), userID, &pagination)
+	groups, meta, err := g.service.GetListGroup(c.Request.Context(), userID, &pagination)
 	if err != nil {
 		response.Error(c, 500, "Failed to Fetch List Group")
 		return
 	}
 
-	response.Success(c, groups)
+	response.SuccessWithMeta(c, groups, meta)
+}
+
+func (g *GroupHandler) GetGroupDetail(c *gin.Context) {
+	userID := c.GetString("user_id")
+	if userID == "" {
+		response.Error(c, 401, "Unauthorized: Missing Token")
+		return
+	}
+
+	groupID := c.Param("id")
+	if groupID == "" {
+		response.Error(c, 400, "Group ID is required")
+		return
+	}
+
+	data, err := g.service.GetGroupDetail(c.Request.Context(), groupID, userID)
+	if err != nil {
+		response.Error(c, 404, "Group not found or you don't have access")
+		return
+	}
+
+	response.Success(c, data)
 }

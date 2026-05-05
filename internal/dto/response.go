@@ -53,6 +53,38 @@ type Meta struct {
 	Total int `json:"total"`
 }
 
+type GroupDetailStats struct {
+	TotalSpent   float64 `json:"total_spent"`
+	YourShare    float64 `json:"your_share"`
+	UnpaidAmount float64 `json:"unpaid_amount"`
+	IsSettled    bool    `json:"is_settled"`
+}
+
+type ExpenseResponse struct {
+	ID          string      `json:"id"`
+	Description string      `json:"description"`
+	Amount      float64     `json:"amount"`
+	PaidBy      UserPreview `json:"paid_by"`
+	SplitWith   []string    `json:"split_with"`
+	PerPerson   float64     `json:"per_person"`
+	Date        string      `json:"date"`
+	GroupID     string      `json:"group_id"`
+	CreatedAt   time.Time   `json:"created_at"`
+}
+
+type GroupDetailResponse struct {
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Icon        string            `json:"icon"`
+	InviteCode  string            `json:"invite_code"`
+	TotalAmount float64           `json:"total_amount"`
+	MemberCount int               `json:"member_count"`
+	CreatedAt   time.Time         `json:"created_at"`
+	Stats       GroupDetailStats  `json:"stats"`
+	Members     []UserPreview     `json:"members"`
+	Expenses    []ExpenseResponse `json:"expenses"`
+}
+
 // === digunakan untuk dashboard ===
 type SummaryDashboard struct {
 	TotalOwe  float64 `json:"total_owe"`
