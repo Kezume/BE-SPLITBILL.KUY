@@ -101,9 +101,9 @@ type ActiveGroup struct {
 }
 
 type UserPreview struct {
-	ID          string `json:"id"`
-	Username    string `json:"username"`
-	AvatarColor string `json:"avatar_color"`
+	ID        string `json:"id"`
+	Username  string `json:"username"`
+	AvatarUrl string `json:"avatar_url"`
 }
 
 type RecentTransaction struct {

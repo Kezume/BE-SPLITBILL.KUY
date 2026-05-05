@@ -25,7 +25,7 @@ func (s *dashboardService) GetDashboardData(userId string) (*dto.DashboardRespon
 	user := dto.UserPreview{
 		ID:          userId,
 		Username:    "USER_01",
-		AvatarColor: "bg-yellow-400",
+		AvatarUrl: "bg-yellow-400",
 	}
 
 	summary := dto.SummaryDashboard{
@@ -44,12 +44,12 @@ func (s *dashboardService) GetDashboardData(userId string) (*dto.DashboardRespon
 				{
 					ID:          "USER_01",
 					Username:    "USER_01",
-					AvatarColor: "bg-yellow-400",
+					AvatarUrl: "bg-yellow-400",
 				},
 				{
 					ID:          "USER_02",
 					Username:    "USER_02",
-					AvatarColor: "bg-red-400",
+					AvatarUrl: "bg-red-400",
 				},
 			},
 		},
@@ -67,7 +67,7 @@ func (s *dashboardService) GetDashboardData(userId string) (*dto.DashboardRespon
 			RelatedUser: dto.UserPreview{
 				ID:          "USER_01",
 				Username:    "USER_01",
-				AvatarColor: "bg-yellow-400",
+				AvatarUrl: "bg-yellow-400",
 			},
 			CreatedAt: time.Now(),
 			SettledAt: time.Now(),

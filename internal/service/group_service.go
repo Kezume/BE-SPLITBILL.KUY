@@ -16,6 +16,8 @@ type GroupService interface {
 	CreateGroup(ctx context.Context, group *model.Groups, userID string) error
 	GetListGroup(ctx context.Context, userID string, pagination *dto.PaginationRequest) ([]dto.ListGroupResponse, *dto.Meta, error)
 	GetGroupDetail(ctx context.Context, groupID string, userID string) (*dto.GroupDetailResponse, error)
+	DeleteGroup(ctx context.Context, groupID string, userID string) error
+	JoinGroup(ctx context.Context, inviteCode string, userID string) (*dto.CreateGroupResponse, error)
 }
 
 type groupService struct {
@@ -120,4 +122,50 @@ func (g *groupService) GetGroupDetail(ctx context.Context, groupID string, userI
 	data.Expenses = expenses
 
 	return &data, nil
+}
+
+func (g *groupService) DeleteGroup(ctx context.Context, groupID string, userID string) error {
+	err := g.repo.DeleteGroup(ctx, groupID, userID)
+	if err != nil {
+		return errors.New("Failed to delete group!")
+	}
+
+	return nil
+}
+
+func (g *groupService) JoinGroup(ctx context.Context, inviteCode string, userID string) (*dto.CreateGroupResponse, error) {
+	group, err := g.repo.FindGroupByInviteCode(ctx, inviteCode)
+	if err != nil {
+		return nil, errors.New("Invite Code is not valid!")
+	}
+
+	isMember, err := g.repo.IsMemberOfGroup(ctx, group.ID.String(), userID)
+	if err != nil {
+		return nil, errors.New("Failed to check if user is member of group!")
+	}
+
+	if isMember {
+		return nil, errors.New("You are already a member of this group!")
+	}
+
+	if group.OwnerID.String() == userID {
+		return nil, errors.New("You are already the owner of this group!")
+	}
+
+	member := model.GroupMember{
+		GroupID: group.ID,
+		UserID:  uuid.Must(uuid.Parse(userID)),
+	}
+
+	if err := g.repo.AddMemberToGroup(ctx, &member); err != nil {
+		return nil, errors.New("Failed to join group!")
+	}
+
+	return &dto.CreateGroupResponse{
+		ID:         group.ID.String(),
+		Name:       group.Name,
+		Icon:       group.Icon,
+		InviteCode: group.InviteCode,
+		CreatedAt:  group.CreatedAt,
+	}, nil
 }

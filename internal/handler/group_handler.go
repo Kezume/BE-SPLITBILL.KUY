@@ -99,3 +99,47 @@ func (g *GroupHandler) GetGroupDetail(c *gin.Context) {
 
 	response.Success(c, data)
 }
+
+func (g *GroupHandler) DeleteGroup(c *gin.Context) {
+	userID := c.GetString("user_id")
+	if userID == "" {
+		response.Error(c, 401, "Unauthorized: Missing Token")
+		return
+	}
+
+	groupID := c.Param("id")
+	if groupID == "" {
+		response.Error(c, 400, "Group ID is required")
+		return
+	}
+
+	err := g.service.DeleteGroup(c, groupID, userID)
+	if err != nil {
+		response.Error(c, 500, "Failed to delete group!")
+		return
+	}
+
+	response.Success(c, "Group deleted successfully")
+}
+
+func (g *GroupHandler) JoinGroup(c *gin.Context) {
+	userID := c.GetString("user_id")
+	if userID == "" {
+		response.Error(c, 401, "Unauthorized: Missing Token")
+		return
+	}
+
+	var payload *dto.JoinGroupRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		response.Error(c, 400, "Failed to Bind JSON")
+		return
+	}
+
+	data, err := g.service.JoinGroup(c.Request.Context(), payload.InviteCode, userID)
+	if err != nil {
+		response.Error(c, 404, "Failed to Join Group")
+		return
+	}
+
+	response.Success(c, data)
+}

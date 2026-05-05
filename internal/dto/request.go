@@ -27,3 +27,7 @@ type PaginationRequest struct {
 	Page  int `json:"page"`
 	Limit int `json:"limit"`
 }
+
+type JoinGroupRequest struct {
+	InviteCode string `json:"invite_code" validate:"required"`
+}
