@@ -22,14 +22,14 @@ func (g *GroupHandler) CreateGroup(c *gin.Context) {
 	userID := c.GetString("user_id")
 
 	if userID == "" {
-		response.Error(c, 401, "Unauthorized: Missing Token")
+		response.Error(c, 401, "Lo belum login nih, login dulu!")
 		return
 	}
 
 	var payload *dto.CreateGroup
 
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		response.Error(c, 400, "Failed to Bind JSON")
+		response.Error(c, 400, "Ada yang salah nih, coba lagi ya!")
 		return
 	}
 
@@ -40,7 +40,7 @@ func (g *GroupHandler) CreateGroup(c *gin.Context) {
 
 	err := g.service.CreateGroup(c.Request.Context(), group, userID)
 	if err != nil {
-		response.Error(c, 500, "Failed to Create Group")
+		response.Error(c, 500, "Gagal bikin grup, coba lagi!")
 		return
 	}
 
@@ -50,7 +50,7 @@ func (g *GroupHandler) CreateGroup(c *gin.Context) {
 func (g *GroupHandler) GetListGroup(c *gin.Context) {
 	userID := c.GetString("user_id")
 	if userID == "" {
-		response.Error(c, 401, "Unauthorized: Missing Token")
+		response.Error(c, 401, "Lo belum login nih, login dulu!")
 		return
 	}
 
@@ -71,7 +71,7 @@ func (g *GroupHandler) GetListGroup(c *gin.Context) {
 
 	groups, meta, err := g.service.GetListGroup(c.Request.Context(), userID, &pagination)
 	if err != nil {
-		response.Error(c, 500, "Failed to Fetch List Group")
+		response.Error(c, 500, "Gagal ambil daftar grup lo!")
 		return
 	}
 
@@ -81,19 +81,19 @@ func (g *GroupHandler) GetListGroup(c *gin.Context) {
 func (g *GroupHandler) GetGroupDetail(c *gin.Context) {
 	userID := c.GetString("user_id")
 	if userID == "" {
-		response.Error(c, 401, "Unauthorized: Missing Token")
+		response.Error(c, 401, "Lo belum login nih, login dulu!")
 		return
 	}
 
 	groupID := c.Param("id")
 	if groupID == "" {
-		response.Error(c, 400, "Group ID is required")
+		response.Error(c, 400, "Waduh, ada yang salah nih!")
 		return
 	}
 
 	data, err := g.service.GetGroupDetail(c.Request.Context(), groupID, userID)
 	if err != nil {
-		response.Error(c, 404, "Group not found or you don't have access")
+		response.Error(c, 404, "Grup gak ketemu atau lo gak punya akses!")
 		return
 	}
 
@@ -103,19 +103,19 @@ func (g *GroupHandler) GetGroupDetail(c *gin.Context) {
 func (g *GroupHandler) DeleteGroup(c *gin.Context) {
 	userID := c.GetString("user_id")
 	if userID == "" {
-		response.Error(c, 401, "Unauthorized: Missing Token")
+		response.Error(c, 401, "Lo belum login nih, login dulu!")
 		return
 	}
 
 	groupID := c.Param("id")
 	if groupID == "" {
-		response.Error(c, 400, "Group ID is required")
+		response.Error(c, 400, "Waduh, ada yang salah nih!")
 		return
 	}
 
 	err := g.service.DeleteGroup(c, groupID, userID)
 	if err != nil {
-		response.Error(c, 500, "Failed to delete group!")
+		response.Error(c, 500, "Gagal hapus grup! Cuma owner yang bisa hapus!")
 		return
 	}
 
@@ -125,19 +125,19 @@ func (g *GroupHandler) DeleteGroup(c *gin.Context) {
 func (g *GroupHandler) JoinGroup(c *gin.Context) {
 	userID := c.GetString("user_id")
 	if userID == "" {
-		response.Error(c, 401, "Unauthorized: Missing Token")
+		response.Error(c, 401, "Lo belum login nih, login dulu!")
 		return
 	}
 
 	var payload *dto.JoinGroupRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		response.Error(c, 400, "Failed to Bind JSON")
+		response.Error(c, 400, "Ada yang salah nih, coba lagi ya!")
 		return
 	}
 
 	data, err := g.service.JoinGroup(c.Request.Context(), payload.InviteCode, userID)
 	if err != nil {
-		response.Error(c, 404, "Failed to Join Group")
+		response.Error(c, 404, "Gagal gabung ke grup!")
 		return
 	}
 

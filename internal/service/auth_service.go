@@ -46,11 +46,11 @@ func (u *authService) Register(ctx context.Context, req dto.RegisterUser) (*mode
 func (u *authService) Login(ctx context.Context, req dto.LoginUser) (*model.User, string, error) {
 	user, err := u.repo.FindUserByEmail(ctx, req.Email)
 	if err != nil {
-		return nil, "", errors.New("User Not Found")
+		return nil, "", errors.New("User gak ketemu!")
 	}
 
 	if err := utils.VerifyPassword(req.Password, user.Password); err != nil {
-		return nil, "", errors.New("Invalid Credentials")
+		return nil, "", errors.New("Email atau password lo salah!")
 	}
 
 	token, err := utils.GenerateToken(user.ID.String(), user.Email)

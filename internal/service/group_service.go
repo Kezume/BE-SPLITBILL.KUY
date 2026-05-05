@@ -35,7 +35,7 @@ func (g *groupService) CreateGroup(ctx context.Context, group *model.Groups, use
 	group.InviteCode = utils.GenerateRandomInviteCode()
 	err := g.repo.CreateGroup(ctx, group)
 	if err != nil {
-		return errors.New("Failed to create group!")
+		return errors.New("Gagal bikin grup!")
 	}
 
 	return nil
@@ -44,7 +44,7 @@ func (g *groupService) CreateGroup(ctx context.Context, group *model.Groups, use
 func (g *groupService) GetListGroup(ctx context.Context, userID string, pagination *dto.PaginationRequest) ([]dto.ListGroupResponse, *dto.Meta, error) {
 	groups, total, err := g.repo.FetchAllGroup(ctx, userID, pagination)
 	if err != nil {
-		return nil, nil, errors.New("Failed to fetch list group!")
+		return nil, nil, errors.New("Gagal ambil daftar grup!")
 	}
 
 	var data []dto.ListGroupResponse
@@ -127,7 +127,7 @@ func (g *groupService) GetGroupDetail(ctx context.Context, groupID string, userI
 func (g *groupService) DeleteGroup(ctx context.Context, groupID string, userID string) error {
 	err := g.repo.DeleteGroup(ctx, groupID, userID)
 	if err != nil {
-		return errors.New("Failed to delete group!")
+		return errors.New("Gagal hapus grup!")
 	}
 
 	return nil
@@ -136,20 +136,20 @@ func (g *groupService) DeleteGroup(ctx context.Context, groupID string, userID s
 func (g *groupService) JoinGroup(ctx context.Context, inviteCode string, userID string) (*dto.CreateGroupResponse, error) {
 	group, err := g.repo.FindGroupByInviteCode(ctx, inviteCode)
 	if err != nil {
-		return nil, errors.New("Invite Code is not valid!")
+		return nil, errors.New("Invite code gak valid nih!")
 	}
 
 	isMember, err := g.repo.IsMemberOfGroup(ctx, group.ID.String(), userID)
 	if err != nil {
-		return nil, errors.New("Failed to check if user is member of group!")
+		return nil, errors.New("Gagal cek keanggotaan lo!")
 	}
 
 	if isMember {
-		return nil, errors.New("You are already a member of this group!")
+		return nil, errors.New("Lo udah gabung di grup ini, bro!")
 	}
 
 	if group.OwnerID.String() == userID {
-		return nil, errors.New("You are already the owner of this group!")
+		return nil, errors.New("Lo udah jadi owner grup ini!")
 	}
 
 	member := model.GroupMember{
@@ -158,7 +158,7 @@ func (g *groupService) JoinGroup(ctx context.Context, inviteCode string, userID 
 	}
 
 	if err := g.repo.AddMemberToGroup(ctx, &member); err != nil {
-		return nil, errors.New("Failed to join group!")
+		return nil, errors.New("Gagal gabung ke grup!")
 	}
 
 	return &dto.CreateGroupResponse{

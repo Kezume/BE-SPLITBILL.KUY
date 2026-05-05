@@ -24,7 +24,7 @@ func (u *UserHandler) GetProfile(c *gin.Context) {
 
 	user, err := u.service.GetProfile(c.Request.Context(), userID)
 	if err != nil {
-		response.Error(c, 500, "Failed to Get Profile")
+		response.Error(c, 500, "Gagal ambil data profil lo!")
 		return
 	}
 
@@ -37,12 +37,12 @@ func (u *UserHandler) UpdateProfile(c *gin.Context) {
 
 	// Mencegah panic jika rute tidak sengaja terlepas dari middleware
 	if userID == "" {
-		response.Error(c, 401, "Unauthorized: Missing Token")
+		response.Error(c, 401, "Lo belum login nih, login dulu!")
 		return
 	}
 
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		response.Error(c, 500, "Failed to Bind JSON")
+		response.Error(c, 500, "Ada yang salah nih, coba lagi ya!")
 		return
 	}
 
@@ -55,7 +55,7 @@ func (u *UserHandler) UpdateProfile(c *gin.Context) {
 
 	err := u.service.UpdateProfile(c.Request.Context(), user)
 	if err != nil {
-		response.Error(c, 500, "Failed to Update user")
+		response.Error(c, 500, "Gagal update profil lo!")
 		return
 	}
 
@@ -66,13 +66,13 @@ func (u *UserHandler) DeleteProfile(c *gin.Context) {
 	userID := c.GetString("user_id")
 
 	if userID == "" {
-		response.Error(c, 401, "Unauthorized: Missing Token")
+		response.Error(c, 401, "Lo belum login nih, login dulu!")
 		return
 	}
 
 	err := u.service.DeleteProfile(c.Request.Context(), userID)
 	if err != nil {
-		response.Error(c, 500, "Failed to Delete Profile")
+		response.Error(c, 500, "Gagal hapus akun lo!")
 		return
 	}
 

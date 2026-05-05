@@ -22,13 +22,13 @@ func (a *AuthHandler) Register(c *gin.Context) {
 	var req dto.RegisterUser
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, 400, "Invalid Register Request, try again")
+		response.Error(c, 400, "Data registrasi lo salah nih, coba lagi!")
 		return
 	}
 
 	user, err := a.service.Register(c.Request.Context(), req)
 	if err != nil {
-		response.Error(c, 500, "Failed to Register, Try again")
+		response.Error(c, 500, "Gagal daftar nih, coba lagi ya!")
 		return
 	}
 
@@ -41,13 +41,13 @@ func (a *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginUser
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, 400, "Invalid Login Request, Try again")
+		response.Error(c, 400, "Data login lo salah, coba lagi!")
 		return
 	}
 
 	user, token, err := a.service.Login(c.Request.Context(), req)
 	if err != nil {
-		response.Error(c, 500, "Failed to Login, Try Again")
+		response.Error(c, 500, "Gagal login nih, coba lagi!")
 		return
 	}
 

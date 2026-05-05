@@ -27,7 +27,7 @@ func NewUserService(repo repository.UserRepository) UserService {
 func (u *userService) GetProfile(ctx context.Context, id string) (*model.User, error) {
 	user, err := u.repo.GetByID(ctx, id)
 	if err != nil {
-		return nil, errors.New("User Not Found")
+		return nil, errors.New("User gak ketemu!")
 	}
 
 	return user, nil
@@ -37,7 +37,7 @@ func (u *userService) UpdateProfile(ctx context.Context, inputUser *model.User) 
 	// Ambil data lama dari DB (gunakan nama variabel berbeda)
 	existingUser, err := u.repo.GetByID(ctx, inputUser.ID.String())
 	if err != nil {
-		return errors.New("User not found!")
+		return errors.New("User gak ketemu!")
 	}
 
 	// Lakukan pengecekan partial update berdasarkan inputUser
@@ -54,7 +54,7 @@ func (u *userService) UpdateProfile(ctx context.Context, inputUser *model.User) 
 	// Simpan perubahan ke DB
 	err = u.repo.UpdateUser(ctx, existingUser)
 	if err != nil {
-		return errors.New("Failed to update user!")
+		return errors.New("Gagal update profil lo!")
 	}
 
 	// Timpa pointer asli agar handler mendapatkan data yang sudah di-update
@@ -66,7 +66,7 @@ func (u *userService) UpdateProfile(ctx context.Context, inputUser *model.User) 
 func (u *userService) DeleteProfile(ctx context.Context, id string) error {
 	err := u.repo.DeleteUser(ctx, id)
 	if err != nil {
-		return errors.New("Failed to delete user!")
+		return errors.New("Gagal hapus akun lo!")
 	}
 
 	return nil

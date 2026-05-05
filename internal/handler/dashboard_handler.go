@@ -20,13 +20,13 @@ func (h *DashboardHandler) GetDashboard(c *gin.Context) {
 	userID := c.GetString("user_id")
 
 	if userID == "" {
-		response.Error(c, 401, "Unauthorized: Missing Token")
+		response.Error(c, 401, "Lo belum login nih, login dulu!")
 		return
 	}
 
 	data, err := h.service.GetDashboardData(userID)
 	if err != nil {
-		response.Error(c, 500, "Failed to load dashboard data")
+		response.Error(c, 500, "Gagal muat data dashboard lo!")
 		return
 	}
 
