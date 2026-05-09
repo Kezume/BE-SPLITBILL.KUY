@@ -96,11 +96,32 @@ func (g *groupService) GetGroupDetail(ctx context.Context, groupID string, userI
 		totalSpent += exp.Amount
 	}
 
+	// Ambil split details untuk semua expense sekaligus
+	var expenseIDs []string
+	for _, exp := range expenses {
+		expenseIDs = append(expenseIDs, exp.ID)
+	}
+
+	splitsMap, _ := g.repo.GetSplitsByExpenseIDs(ctx, expenseIDs)
+	for i, exp := range expenses {
+		if splits, ok := splitsMap[exp.ID]; ok {
+			expenses[i].SplitWith = splits
+			if len(splits) > 0 {
+				expenses[i].PerPerson = splits[0].Amount
+			}
+		} else {
+			expenses[i].SplitWith = []dto.SplitMemberDetail{}
+		}
+	}
+
 	// Ambil members dari repo
 	members, err := g.repo.GetGroupMembers(ctx, groupID)
 	if err != nil || members == nil {
 		members = []dto.UserPreview{}
 	}
+
+	// Hitung stats dari data asli
+	yourShare, unpaidAmount, _ := g.repo.GetUserStatsInGroup(ctx, groupID, userID)
 
 	var data dto.GroupDetailResponse
 	data.ID = group.ID.String()
@@ -109,13 +130,14 @@ func (g *groupService) GetGroupDetail(ctx context.Context, groupID string, userI
 	data.InviteCode = group.InviteCode
 	data.TotalAmount = totalSpent
 	data.MemberCount = len(members)
+	data.IsOwner = group.OwnerID.String() == userID
 	data.CreatedAt = group.CreatedAt
 
 	data.Stats = dto.GroupDetailStats{
 		TotalSpent:   totalSpent,
-		YourShare:    0,
-		UnpaidAmount: 0,
-		IsSettled:    true,
+		YourShare:    yourShare,
+		UnpaidAmount: unpaidAmount,
+		IsSettled:    unpaidAmount == 0,
 	}
 
 	data.Members = members

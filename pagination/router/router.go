@@ -27,6 +27,10 @@ func SetupRoutes(r *gin.Engine) {
 	groupService := service.NewGroupService(groupRepo)
 	groupHandler := handler.NewGroupHandler(groupService)
 
+	expenseRepo := repository.NewExpenseRepository()
+	expenseService := service.NewExpenseService(expenseRepo)
+	expenseHandler := handler.NewExpenseHandler(expenseService)
+
 	// === Auth ===
 	authRoutes := api.Group("/auth")
 	authRoutes.POST("/register", authHandler.Register)
@@ -54,4 +58,9 @@ func SetupRoutes(r *gin.Engine) {
 	groupRoutes.GET("/:id", groupHandler.GetGroupDetail)
 	groupRoutes.DELETE("/:id", groupHandler.DeleteGroup)
 	groupRoutes.POST("/join", groupHandler.JoinGroup)
+
+	// === Expense (Protected) ===
+	expenseRoutes := protectedRoutes.Group("/expenses")
+	expenseRoutes.POST("/", expenseHandler.CreateExpense)
+	expenseRoutes.DELETE("/:id", expenseHandler.DeleteExpense)
 }

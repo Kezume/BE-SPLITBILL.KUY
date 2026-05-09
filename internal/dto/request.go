@@ -31,3 +31,18 @@ type PaginationRequest struct {
 type JoinGroupRequest struct {
 	InviteCode string `json:"invite_code" validate:"required"`
 }
+
+type CreateExpenseRequest struct {
+	GroupID     string        `json:"group_id" validate:"required"`
+	Description string        `json:"description" validate:"required"`
+	Amount      uint64        `json:"amount" validate:"required"`
+	PaidBy      string        `json:"paid_by" validate:"required"`
+	SplitType   string        `json:"split_type" validate:"required"`
+	SplitWith   []SplitDetail `json:"split_with" validate:"required"`
+	Date        string        `json:"date" validate:"required"`
+}
+
+type SplitDetail struct {
+	UserID string `json:"user_id" validate:"required"`
+	Amount uint64 `json:"amount"`
+}

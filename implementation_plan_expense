@@ -1,0 +1,273 @@
+# Fitur Expense (Equal + Custom Split)
+
+User bisa menambahkan pengeluaran ke dalam grup, memilih siapa yang bayar (bisa member lain), dan membaginya secara **rata (equal)** atau **custom (manual per orang)**.
+
+---
+
+## Model yang Sudah Ada
+
+### `expenses` table
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| `id` | char(36) | UUID, PK |
+| `group_id` | char(36) | FK → groups |
+| `description` | varchar(255) | Nama pengeluaran |
+| `amount` | bigint | Total biaya |
+| `paid_by` | char(36) | FK → users (siapa yang bayar) |
+| `date` | date | Tanggal pengeluaran |
+
+### `expense_splits` table
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| `id` | char(36) | UUID, PK |
+| `expense_id` | char(36) | FK → expenses (CASCADE) |
+| `user_id` | char(36) | FK → users |
+| `amount` | bigint | **Bagian per orang** (bisa beda-beda kalau custom) |
+| `is_settled` | boolean | Sudah lunas? |
+| `settled_at` | timestamp | Kapan lunas |
+
+---
+
+## Tahap 1: DTO (`internal/dto/request.go`)
+
+Tambahkan struct:
+
+```go
+type CreateExpenseRequest struct {
+    GroupID     string            `json:"group_id" validate:"required"`
+    Description string            `json:"description" validate:"required"`
+    Amount      uint64            `json:"amount" validate:"required,gt=0"`
+    PaidBy      string            `json:"paid_by" validate:"required"`
+    SplitType   string            `json:"split_type" validate:"required"` // "equal" atau "custom"
+    SplitWith   []SplitDetail     `json:"split_with" validate:"required,min=1"`
+    Date        string            `json:"date" validate:"required"`
+}
+
+type SplitDetail struct {
+    UserID string `json:"user_id" validate:"required"`
+    Amount uint64 `json:"amount"` // Diisi 0 kalau equal (dihitung di service)
+}
+```
+
+### Cara kerja:
+- **Equal split**: FE kirim `split_type: "equal"`, field `amount` di `SplitDetail` boleh 0 (service yang hitung)
+- **Custom split**: FE kirim `split_type: "custom"`, field `amount` di `SplitDetail` wajib diisi, dan **total semua amount harus sama dengan total expense**
+
+---
+
+## Tahap 2: Repository — [NEW] `internal/repository/expense_repo.go`
+
+```go
+type ExpenseRepository interface {
+    CreateExpense(ctx context.Context, expense *model.Expense) error
+    CreateExpenseSplits(ctx context.Context, splits []model.ExpenseSplit) error
+    DeleteExpense(ctx context.Context, expenseID string, userID string) error
+}
+```
+
+### Implementasi:
+
+```go
+// a. Insert expense
+func (e *expenseRepository) CreateExpense(ctx context.Context, expense *model.Expense) error {
+    return database.DB.WithContext(ctx).Create(expense).Error
+}
+
+// b. Bulk insert splits
+func (e *expenseRepository) CreateExpenseSplits(ctx context.Context, splits []model.ExpenseSplit) error {
+    return database.DB.WithContext(ctx).Create(&splits).Error
+}
+
+// c. Hapus expense (hanya yang bayar)
+func (e *expenseRepository) DeleteExpense(ctx context.Context, expenseID string, userID string) error {
+    result := database.DB.WithContext(ctx).
+        Where("id = ? AND paid_by = ?", expenseID, userID).
+        Delete(&model.Expense{})
+    if result.RowsAffected == 0 {
+        return errors.New("not found")
+    }
+    return result.Error
+}
+```
+
+> [!NOTE]
+> `expense_splits` terhapus otomatis karena `OnDelete:CASCADE` di model.
+
+---
+
+## Tahap 3: Service — [NEW] `internal/service/expense_service.go`
+
+```go
+type ExpenseService interface {
+    CreateExpense(ctx context.Context, req dto.CreateExpenseRequest) error
+    DeleteExpense(ctx context.Context, expenseID string, userID string) error
+}
+```
+
+### Logika `CreateExpense`:
+
+```go
+func (s *expenseService) CreateExpense(ctx context.Context, req dto.CreateExpenseRequest) error {
+    // 1. Parse tanggal
+    date, err := time.Parse("2006-01-02", req.Date)
+
+    // 2. Buat record expense
+    expense := model.Expense{
+        GroupID:     uuid.Must(uuid.Parse(req.GroupID)),
+        Description: req.Description,
+        Amount:      req.Amount,
+        PaidBy:      uuid.Must(uuid.Parse(req.PaidBy)),
+        Date:        date,
+    }
+    err = s.repo.CreateExpense(ctx, &expense)
+
+    // 3. Hitung split
+    var splits []model.ExpenseSplit
+
+    if req.SplitType == "equal" {
+        perPerson := req.Amount / uint64(len(req.SplitWith))
+        for _, s := range req.SplitWith {
+            splits = append(splits, model.ExpenseSplit{
+                ExpenseID: expense.ID,
+                UserID:    uuid.Must(uuid.Parse(s.UserID)),
+                Amount:    perPerson,
+            })
+        }
+    } else { // custom
+        // Validasi: total split harus == total amount
+        var totalSplit uint64
+        for _, s := range req.SplitWith {
+            totalSplit += s.Amount
+        }
+        if totalSplit != req.Amount {
+            return errors.New("Total split gak sesuai sama total biaya!")
+        }
+
+        for _, s := range req.SplitWith {
+            splits = append(splits, model.ExpenseSplit{
+                ExpenseID: expense.ID,
+                UserID:    uuid.Must(uuid.Parse(s.UserID)),
+                Amount:    s.Amount,
+            })
+        }
+    }
+
+    // 4. Simpan splits
+    return s.repo.CreateExpenseSplits(ctx, splits)
+}
+```
+
+---
+
+## Tahap 4: Handler — [NEW] `internal/handler/expense_handler.go`
+
+### a. `CreateExpense` → `POST /api/v1/expenses/`
+- Ambil `user_id` dari JWT
+- Bind JSON body (`CreateExpenseRequest`)
+- Panggil service
+- Return success
+
+### b. `DeleteExpense` → `DELETE /api/v1/expenses/:id`
+- Ambil `user_id` dari JWT
+- Ambil `expense_id` dari param
+- Panggil service (hanya `paid_by` yang bisa hapus)
+- Return success
+
+---
+
+## Tahap 5: Router (`pagination/router/router.go`)
+
+### Dependency Injection
+```go
+expenseRepo := repository.NewExpenseRepository()
+expenseService := service.NewExpenseService(expenseRepo)
+expenseHandler := handler.NewExpenseHandler(expenseService)
+```
+
+### Routes
+```go
+// === Expense (Protected) ===
+expenseRoutes := protectedRoutes.Group("/expenses")
+expenseRoutes.POST("/", expenseHandler.CreateExpense)
+expenseRoutes.DELETE("/:id", expenseHandler.DeleteExpense)
+```
+
+---
+
+## Tahap 6: Frontend — Update `AddExpenseModal.jsx`
+
+### Perubahan utama:
+
+#### a. Props baru
+```jsx
+function AddExpenseModal({ isOpen, onClose, groupId, members, onSuccess })
+```
+- `groupId` — ID grup aktif
+- `members` — array `[{ id, username, avatar_url }]` dari GroupDetail
+- `onSuccess` — callback setelah berhasil simpan
+
+#### b. State
+```jsx
+const [splitType, setSplitType] = useState('equal')  // 'equal' | 'custom'
+const [paidBy, setPaidBy] = useState('')              // user ID dari dropdown
+const [splitWith, setSplitWith] = useState({})        // { userId: { checked: bool, amount: 0 } }
+```
+
+#### c. UI Flow
+1. **DIBAYAR_OLEH**: Dropdown berisi semua `members` (bukan hardcoded)
+2. **Toggle EQUAL / CUSTOM**: Dua tombol untuk memilih mode split
+3. **BAGI_DENGAN**:
+   - **Equal mode**: Hanya checkbox per member, estimasi per orang otomatis dihitung
+   - **Custom mode**: Checkbox + input nominal per member, validasi total harus = amount
+4. **Tombol SIMPAN**: POST ke `/api/v1/expenses/` lalu panggil `onSuccess()`
+
+#### d. Payload yang dikirim
+```json
+{
+  "group_id": "uuid",
+  "description": "Pizza Party",
+  "amount": 150000,
+  "paid_by": "user-uuid-yang-bayar",
+  "split_type": "equal",
+  "split_with": [
+    { "user_id": "uuid-1", "amount": 0 },
+    { "user_id": "uuid-2", "amount": 0 }
+  ],
+  "date": "2026-05-08"
+}
+```
+
+#### e. Di `GroupDetail.jsx`
+```jsx
+<AddExpenseModal
+  isOpen={showModal}
+  onClose={() => setShowModal(false)}
+  groupId={id}
+  members={groupData.members}
+  onSuccess={() => {
+    setShowModal(false)
+    setRefreshKey(prev => prev + 1) // refresh data
+  }}
+/>
+```
+
+---
+
+## Ringkasan File
+
+| Action | File | Layer |
+|--------|------|-------|
+| [NEW] | `internal/repository/expense_repo.go` | Repository |
+| [NEW] | `internal/service/expense_service.go` | Service |
+| [NEW] | `internal/handler/expense_handler.go` | Handler |
+| [MODIFY] | `internal/dto/request.go` | DTO |
+| [MODIFY] | `pagination/router/router.go` | Router + DI |
+| [MODIFY] | `frontend/src/components/AddExpenseModal.jsx` | Frontend |
+| [MODIFY] | `frontend/src/pages/GroupDetail.jsx` | Frontend (props) |
+
+## Endpoint Baru
+
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| `POST` | `/api/v1/expenses/` | Tambah expense + split (equal/custom) |
+| `DELETE` | `/api/v1/expenses/:id` | Hapus expense (hanya yang bayar) |

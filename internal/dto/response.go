@@ -60,16 +60,44 @@ type GroupDetailStats struct {
 	IsSettled    bool    `json:"is_settled"`
 }
 
+// Struct flat untuk GORM scan (tidak bisa pakai nested struct)
+type ExpenseScanResult struct {
+	ID          string  `json:"id"`
+	Description string  `json:"description"`
+	Amount      float64 `json:"amount"`
+	Payer       string  `json:"payer"`
+	PayerID     string  `json:"payer_id"`
+	PayerAvatar string  `json:"payer_avatar"`
+	Date        string  `json:"date"`
+	GroupID     string  `json:"group_id"`
+}
+
+// Detail split per member
+type SplitMemberDetail struct {
+	User      UserPreview `json:"user"`
+	Amount    float64     `json:"amount"`
+	IsSettled bool        `json:"is_settled"`
+}
+
+// Flat scan untuk expense_splits
+type SplitScanResult struct {
+	UserID    string  `json:"user_id"`
+	Username  string  `json:"username"`
+	AvatarUrl string  `json:"avatar_url"`
+	Amount    float64 `json:"amount"`
+	IsSettled bool    `json:"is_settled"`
+}
+
 type ExpenseResponse struct {
-	ID          string      `json:"id"`
-	Description string      `json:"description"`
-	Amount      float64     `json:"amount"`
-	PaidBy      UserPreview `json:"paid_by"`
-	SplitWith   []string    `json:"split_with"`
-	PerPerson   float64     `json:"per_person"`
-	Date        string      `json:"date"`
-	GroupID     string      `json:"group_id"`
-	CreatedAt   time.Time   `json:"created_at"`
+	ID          string              `json:"id"`
+	Description string              `json:"description"`
+	Amount      float64             `json:"amount"`
+	PaidBy      UserPreview         `json:"paid_by"`
+	SplitWith   []SplitMemberDetail `json:"split_with"`
+	PerPerson   float64             `json:"per_person"`
+	Date        string              `json:"date"`
+	GroupID     string              `json:"group_id"`
+	CreatedAt   time.Time           `json:"created_at"`
 }
 
 type GroupDetailResponse struct {
@@ -79,6 +107,7 @@ type GroupDetailResponse struct {
 	InviteCode  string            `json:"invite_code"`
 	TotalAmount float64           `json:"total_amount"`
 	MemberCount int               `json:"member_count"`
+	IsOwner     bool              `json:"is_owner"`
 	CreatedAt   time.Time         `json:"created_at"`
 	Stats       GroupDetailStats  `json:"stats"`
 	Members     []UserPreview     `json:"members"`

@@ -15,6 +15,8 @@ type GroupRepository interface {
 	GetGroupDetail(ctx context.Context, groupID string) (*model.Groups, error)
 	GetExpensesByGroupID(ctx context.Context, groupID string) ([]dto.ExpenseResponse, error)
 	GetGroupMembers(ctx context.Context, groupID string) ([]dto.UserPreview, error)
+	GetSplitsByExpenseIDs(ctx context.Context, expenseIDs []string) (map[string][]dto.SplitMemberDetail, error)
+	GetUserStatsInGroup(ctx context.Context, groupID string, userID string) (yourShare float64, unpaidAmount float64, err error)
 	DeleteGroup(ctx context.Context, groupID string, userID string) error
 	FindGroupByInviteCode(ctx context.Context, inviteCode string) (*model.Groups, error)
 	IsMemberOfGroup(ctx context.Context, groupID string, userID string) (bool, error)
@@ -98,15 +100,32 @@ func (g *groupRepository) GetGroupDetail(ctx context.Context, groupID string) (*
 }
 
 func (g *groupRepository) GetExpensesByGroupID(ctx context.Context, groupID string) ([]dto.ExpenseResponse, error) {
-	var expenses []dto.ExpenseResponse
+	var scanned []dto.ExpenseScanResult
 	if err := database.DB.WithContext(ctx).Table("expenses e").
-		Select("e.id, e.date, e.description, u.username as payer, u.avatar_url as payer_color, e.amount").
+		Select("e.id, DATE_FORMAT(e.date, '%Y-%m-%d') as date, e.description, e.amount, e.group_id, u.id as payer_id, u.username as payer, u.avatar_url as payer_avatar").
 		Joins("JOIN users u ON e.paid_by = u.id").
 		Where("e.group_id = ?", groupID).
 		Order("e.date DESC").
-		Scan(&expenses).Error; err != nil {
+		Scan(&scanned).Error; err != nil {
 		return nil, errors.New("Data not found")
 	}
+
+	var expenses []dto.ExpenseResponse
+	for _, s := range scanned {
+		expenses = append(expenses, dto.ExpenseResponse{
+			ID:          s.ID,
+			Description: s.Description,
+			Amount:      s.Amount,
+			Date:        s.Date,
+			GroupID:     s.GroupID,
+			PaidBy: dto.UserPreview{
+				ID:        s.PayerID,
+				Username:  s.Payer,
+				AvatarUrl: s.PayerAvatar,
+			},
+		})
+	}
+
 	return expenses, nil
 }
 
@@ -118,6 +137,66 @@ func (g *groupRepository) GetGroupMembers(ctx context.Context, groupID string) (
 		Where("gm.group_id = ?", groupID).
 		Scan(&members).Error
 	return members, err
+}
+
+func (g *groupRepository) GetSplitsByExpenseIDs(ctx context.Context, expenseIDs []string) (map[string][]dto.SplitMemberDetail, error) {
+	if len(expenseIDs) == 0 {
+		return map[string][]dto.SplitMemberDetail{}, nil
+	}
+
+	type scanRow struct {
+		ExpenseID string  `json:"expense_id"`
+		UserID    string  `json:"user_id"`
+		Username  string  `json:"username"`
+		AvatarUrl string  `json:"avatar_url"`
+		Amount    float64 `json:"amount"`
+		IsSettled bool    `json:"is_settled"`
+	}
+
+	var rows []scanRow
+	err := database.DB.WithContext(ctx).Table("expense_splits es").
+		Select("es.expense_id, es.user_id, u.username, u.avatar_url, es.amount, es.is_settled").
+		Joins("JOIN users u ON u.id = es.user_id").
+		Where("es.expense_id IN ?", expenseIDs).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string][]dto.SplitMemberDetail)
+	for _, r := range rows {
+		result[r.ExpenseID] = append(result[r.ExpenseID], dto.SplitMemberDetail{
+			User: dto.UserPreview{
+				ID:        r.UserID,
+				Username:  r.Username,
+				AvatarUrl: r.AvatarUrl,
+			},
+			Amount:    r.Amount,
+			IsSettled: r.IsSettled,
+		})
+	}
+
+	return result, nil
+}
+
+func (g *groupRepository) GetUserStatsInGroup(ctx context.Context, groupID string, userID string) (float64, float64, error) {
+	// your_share: total yang harus user bayar (belum lunas)
+	var yourShare float64
+	database.DB.WithContext(ctx).Table("expense_splits es").
+		Select("COALESCE(SUM(es.amount), 0)").
+		Joins("JOIN expenses e ON e.id = es.expense_id").
+		Where("e.group_id = ? AND es.user_id = ? AND es.is_settled = false", groupID, userID).
+		Scan(&yourShare)
+
+	// unpaid_amount: total semua yang belum lunas di grup
+	var unpaidAmount float64
+	database.DB.WithContext(ctx).Table("expense_splits es").
+		Select("COALESCE(SUM(es.amount), 0)").
+		Joins("JOIN expenses e ON e.id = es.expense_id").
+		Where("e.group_id = ? AND es.is_settled = false", groupID).
+		Scan(&unpaidAmount)
+
+	return yourShare, unpaidAmount, nil
 }
 
 func (g *groupRepository) DeleteGroup(ctx context.Context, groupID string, userID string) error {
