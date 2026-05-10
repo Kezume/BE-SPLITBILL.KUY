@@ -46,3 +46,7 @@ type SplitDetail struct {
 	UserID string `json:"user_id" validate:"required"`
 	Amount uint64 `json:"amount"`
 }
+
+type AddFriendRequest struct {
+	Username string `json:"username" validate:"required"`
+}

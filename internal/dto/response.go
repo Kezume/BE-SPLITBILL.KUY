@@ -154,3 +154,23 @@ type DashboardResponse struct {
 	ActiveGroups       []ActiveGroup       `json:"active_groups"`
 	RecentTransactions []RecentTransaction `json:"recent_transactions"`
 }
+
+type FriendResponse struct {
+	ID           string  `json:"id"`
+	Username     string  `json:"username"`
+	AvatarColor  string  `json:"avatar_color"`
+	MutualGroups int     `json:"mutual_groups"`
+	Balance      float64 `json:"balance"`
+	Status       string  `json:"status"`
+}
+
+type FriendStats struct {
+	Total     int `json:"total"`
+	Settled   int `json:"settled"`
+	Unsettled int `json:"unsettled"`
+}
+
+type FriendListResponse struct {
+	Friends []FriendResponse `json:"friends"`
+	Stats   FriendStats      `json:"stats"`
+}

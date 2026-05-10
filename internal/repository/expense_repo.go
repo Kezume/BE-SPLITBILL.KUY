@@ -31,7 +31,7 @@ func (e *expenseRepository) CreateExpense(ctx context.Context, expense *model.Ex
 }
 
 func (e *expenseRepository) CreateExpenseSplits(ctx context.Context, splits []model.ExpenseSplit) error {
-	err := database.DB.WithContext(ctx).Omit("Expense", "User").Create(&splits).Error
+	err := database.DB.WithContext(ctx).Create(&splits).Error
 	if err != nil {
 		return err
 	}

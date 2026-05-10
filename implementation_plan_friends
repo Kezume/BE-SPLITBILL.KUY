@@ -1,0 +1,127 @@
+# Implementation Plan: Friends Feature
+
+Fitur Teman (Friends) memungkinkan pengguna untuk menambahkan teman berdasarkan username, melihat daftar teman berserta statistik hutang-piutang (balance), menghapus teman, dan mengirimkan reminder tagihan.
+
+## User Review Required
+
+> [!NOTE]
+> **Keputusan Sebelumnya:**
+> - **Friendship Bidirectional:** Ya. Karena tabel memiliki relasi satu arah per baris, maka untuk pencarian `GetFriends` kita akan menggunakan query `OR` (`user_id = A OR friend_id = A`) sehingga data teman tampil di kedua belah pihak secara otomatis.
+> - **Remind Friend:** Untuk saat ini fitur pengingat (remind) hanya akan mengembalikan respons sukses HTTP tanpa menggunakan WebSockets/email real-time (bisa dikembangkan nanti).
+
+## Proposed Changes
+
+### Backend
+
+#### [NEW] `internal/model/friendship.go`
+- Buat struct `Friendship` yang merepresentasikan tabel `friendships`.
+
+#### [MODIFY] `internal/dto/response.go` & `internal/dto/request.go`
+- Tambahkan struktur `AddFriendRequest` (berisi `username`).
+- Tambahkan struktur `FriendResponse` yang mencakup:
+  - `ID`, `Username`, `AvatarColor`
+  - `MutualGroups` (jumlah grup yang sama)
+  - `Balance` (total hutang piutang antara user dan teman)
+  - `Status` (`LUNAS` atau `HUTANG`)
+- Tambahkan `FriendListResponse` dengan field `stats` (total, settled, unsettled) dan `friends`.
+
+#### [NEW] `internal/repository/friend_repo.go`
+- `AddFriend`: Insert relasi ke tabel `friendships`.
+- `GetFriends`: Mengambil daftar teman dengan pendekatan _bidirectional_ query (`WHERE user_id = ? OR friend_id = ?`). Menggabungkan perhitungan `mutual_groups` dan `balance`.
+- `RemoveFriend`: Delete relasi di tabel `friendships` (baik arah A->B maupun B->A).
+- `CheckFriendship`: Memeriksa apakah dua user sudah berteman.
+
+**Panduan Kode:**
+```go
+package repository
+
+import (
+	"context"
+	"github.com/Kezume/BE-SPLITBILL.KUY/internal/dto"
+)
+
+type FriendRepository interface {
+	AddFriend(ctx context.Context, userID string, friendID string) error
+	GetFriends(ctx context.Context, userID string, search string, status string) ([]dto.FriendResponse, error)
+	RemoveFriend(ctx context.Context, userID string, friendID string) error
+	CheckFriendship(ctx context.Context, userID string, friendID string) (bool, error)
+}
+```
+
+#### [NEW] `internal/service/friend_service.go`
+- Mengatur logika bisnis untuk `AddFriend` (memastikan username ada dan belum berteman).
+- `GetFriends` (dengan support filter `search` dan `status`).
+- `RemindFriend` (mengembalikan pesan sukses "Reminder sent to [username]" tanpa real-time process).
+
+**Panduan Kode:**
+```go
+package service
+
+import (
+	"context"
+	"github.com/Kezume/BE-SPLITBILL.KUY/internal/dto"
+)
+
+type FriendService interface {
+	AddFriendByUsername(ctx context.Context, userID string, username string) (*dto.FriendResponse, error)
+	GetFriends(ctx context.Context, userID string, search string, status string) (*dto.FriendListResponse, error)
+	RemoveFriend(ctx context.Context, userID string, friendID string) error
+	RemindFriend(ctx context.Context, userID string, friendID string) error
+}
+```
+
+#### [NEW] `internal/handler/friend_handler.go`
+- Handling request HTTP untuk `GET /friends`, `POST /friends`, `DELETE /friends/{friendId}`, dan `POST /friends/{friendId}/remind`.
+
+**Panduan Kode:**
+```go
+package handler
+
+import "github.com/gofiber/fiber/v2"
+
+type FriendHandler interface {
+	AddFriend(c *fiber.Ctx) error
+	GetFriends(c *fiber.Ctx) error
+	RemoveFriend(c *fiber.Ctx) error
+	RemindFriend(c *fiber.Ctx) error
+}
+```
+
+#### [MODIFY] `pagination/router/router.go`
+- Register dependencies untuk friend layer (repo, service, handler).
+- Tambahkan routing endpoint `/friends` dengan middleware autentikasi.
+
+---
+
+### Frontend
+
+#### [NEW] `src/pages/Friends.jsx`
+- Buat UI list teman dengan gaya neobrutalist.
+- Fitur pencarian teman (search bar).
+- Filter status (`settled` / `unsettled`).
+- Statistik di bagian atas halaman (Total, Lunas, Belum Lunas).
+- Tombol **Add Friend** yang membuka input username.
+- Di list per teman:
+  - Menampilkan jumlah `Mutual Groups`.
+  - Nominal hutang/piutang (jika minus berarti kita utang, jika plus berarti dia yang utang).
+  - Tombol **Remind** (jika dia utang).
+  - Tombol **Hapus Teman** (dengan custom modal konfirmasi).
+
+#### [MODIFY] `src/App.jsx`
+- Daftarkan route `/friends` ke dalam `react-router-dom`.
+
+#### [MODIFY] `src/components/Navbar.jsx`
+- Tambahkan link navigasi "Friends" di menu agar user bisa mengakses halaman baru ini.
+
+## Verification Plan
+
+### Automated Tests
+- Menjalankan backend (`go run .\cmd\main.go`) dan memverifikasi endpoint `/friends` via HTTP client (Postman/cURL).
+
+### Manual Verification
+1. Buka halaman `/friends` di frontend.
+2. Tambahkan teman menggunakan username.
+3. Login sebagai teman tersebut, pastikan Anda juga langsung muncul di daftar teman miliknya (bidirectional).
+4. Buat grup dengan teman tersebut dan tambahkan pengeluaran.
+5. Kembali ke halaman `/friends` dan pastikan `Mutual Groups` dan `Balance` ter-update dengan benar.
+6. Uji tombol "Remind" (muncul pesan sukses) dan "Hapus Teman" menggunakan modal kustom.
